@@ -3,7 +3,6 @@ import region
 import json
 import os
 import shutil
-from lz import decompressFile
 
 def loadFromArchive(path):
     result = {}
@@ -34,7 +33,6 @@ def writeToArchive(path, archive):
     for x in archive["countries"]:
         country.writeCountryToArchive(path, x)
 
-
 inPath = "/home/wwylele/3ds-country-archive/origin"
 outPath = "/home/wwylele/3ds-country-archive/new"
 archive = loadFromArchive(inPath)
@@ -46,6 +44,4 @@ for path, dirs, files in os.walk(inPath):
         a = os.path.join(path, f)
         b = os.path.join(outPath, os.path.relpath(path, inPath) ,f)
         with open(a, "rb") as inFile, open(b, "rb") as outFile:
-            inData = decompressFile(inFile)
-            outData = outFile.read()
-            assert inData == outData
+            assert inFile.read() == outFile.read()

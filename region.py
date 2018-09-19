@@ -1,4 +1,5 @@
 from lz import decompressFile
+from lz_compress import compressLz
 from parse_name import parseName, parseSort, writeName, writeSort
 import os.path
 import io
@@ -43,16 +44,19 @@ def loadRegionFromArchive(archivePath, code):
         return result
 
 def writeRegionToArchive(archivePath, region):
-    with open(os.path.join(archivePath, region["region"], "country_LZ.bin"), 'wb') as file:
-        for section in [region["countries"], region["countriesPatch"]]:
-            file.write(struct.pack('<I', len(section)))
-            for entry in section:
-                file.write(struct.pack('BBBB', 0, 0, 0, entry["country"]))
-                file.write(struct.pack('<I', entry["divisionCount"]))
-                file.write(struct.pack('<I', 0))
-                writeName(file, entry["name"])
-                writeSort(file, entry["sort"])
-                file.write(b'\x00' * 0x20)
-        for entry in region["countries"]:
+    file = io.BytesIO()
+    for section in [region["countries"], region["countriesPatch"]]:
+        file.write(struct.pack('<I', len(section)))
+        for entry in section:
+            file.write(struct.pack('BBBB', 0, 0, 0, entry["country"]))
+            file.write(struct.pack('<I', entry["divisionCount"]))
+            file.write(struct.pack('<I', 0))
+            writeName(file, entry["name"])
             writeSort(file, entry["sort"])
-        file.write(bytes.fromhex(region["tail"]))
+            file.write(b'\x00' * 0x20)
+    for entry in region["countries"]:
+        writeSort(file, entry["sort"])
+    file.write(bytes.fromhex(region["tail"]))
+
+    with open(os.path.join(archivePath, region["region"], "country_LZ.bin"), 'wb') as realFile:
+        compressLz(file.getvalue(), realFile)

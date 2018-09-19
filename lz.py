@@ -1,5 +1,5 @@
 '''
-https://github.com/magical/nlzss/
+Adapted from https://github.com/magical/nlzss/
 
 Copyright (C) magical
 
@@ -22,13 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
-import sys
 from struct import pack, unpack
 
-__all__ = ('decompressFile', 'DecompressionError')
+__all__ = ('decompressFile')
 
-class DecompressionError(ValueError):
-    pass
 
 def bits(byte):
     return ((byte >> 7) & 1,
@@ -59,7 +56,7 @@ def decompress_raw(indata, decompressed_size):
         for flag in flags:
             if flag == 0:
                 copybyte()
-            elif flag == 1:
+            else:
                 b = readbyte()
                 indicator = b >> 4
 
@@ -84,28 +81,19 @@ def decompress_raw(indata, decompressed_size):
                 disp = ((b & 0xf) << 8) + readbyte()
                 disp += 1
 
-                try:
-                    for _ in range(count):
-                        writebyte(data[-disp])
-                except IndexError:
-                    raise Exception(count, disp, len(data), sum(1 for x in it) )
-            else:
-                raise ValueError(flag)
+                for _ in range(count):
+                    writebyte(data[-disp])
 
             if decompressed_size <= len(data):
                 break
 
-    if len(data) != decompressed_size:
-        raise DecompressionError("decompressed size does not match the expected size")
+    assert len(data) == decompressed_size
 
     return data
 
 def decompressFile(f):
     header = f.read(4)
-    if header[0] != 0x11:
-        raise DecompressionError("not as lzss-compressed file")
-
+    assert header[0] == 0x11
     decompressed_size, = unpack("<L", header[1:] + b'\x00')
-
     data = f.read()
     return decompress_raw(data, decompressed_size)

@@ -1,4 +1,5 @@
 from lz import decompressFile
+from lz_compress import compressLz
 from parse_name import parseName, parseSort, writeName, writeSort
 import os.path
 import io
@@ -47,21 +48,24 @@ def loadCountryFromArchive(archivePath, code):
 
 
 def writeCountryToArchive(archivePath, country):
+    file = io.BytesIO()
+    firstSection = True
+    for section in [country["divisions"], country["divisionsPatch"]]:
+        entryCount = len(section)
+        entryCountWrite = entryCount
+        if firstSection:
+            firstSection = False
+            entryCountWrite -= 1
+        file.write(struct.pack('<I', entryCountWrite))
+        for entry in section:
+            file.write(struct.pack('BBBB', 0, 0, entry["division"], country["code"]))
+            writeName(file, entry["name"])
+            writeSort(file, entry["sort"])
+            file.write(struct.pack('<HH', entry["latitude"], entry["longitude"]))
+    for entry in country["divisions"]:
+        writeSort(file, entry["sortPatch"])
+    file.write(bytes.fromhex(country["tail"]))
+
     path = os.path.join(archivePath, country["region"], "{}_LZ.bin".format(country["code"]))
-    with open(path, 'wb') as file:
-        firstSection = True
-        for section in [country["divisions"], country["divisionsPatch"]]:
-            entryCount = len(section)
-            entryCountWrite = entryCount
-            if firstSection:
-                firstSection = False
-                entryCountWrite -= 1
-            file.write(struct.pack('<I', entryCountWrite))
-            for entry in section:
-                file.write(struct.pack('BBBB', 0, 0, entry["division"], country["code"]))
-                writeName(file, entry["name"])
-                writeSort(file, entry["sort"])
-                file.write(struct.pack('<HH', entry["latitude"], entry["longitude"]))
-        for entry in country["divisions"]:
-            writeSort(file, entry["sortPatch"])
-        file.write(bytes.fromhex(country["tail"]))
+    with open(path, 'wb') as realFile:
+        compressLz(file.getvalue(), realFile)
