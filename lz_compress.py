@@ -22,8 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
-from sys import stderr
-
 from collections import defaultdict
 from operator import itemgetter
 from struct import pack, unpack
